@@ -1,0 +1,431 @@
+const state = {
+  providers: [],
+  models: [],
+  healthSummary: null,
+  syncMetas: {},
+};
+
+const healthLabels = {
+  missing_key: 'Missing key',
+  configured: 'Configured (untested)',
+  healthy: 'Healthy',
+  unhealthy: 'Unhealthy',
+};
+
+async function fetchJSON(url, options) {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error?.message ?? `Request failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+function maskPlaceholder(isAvailable) {
+  return isAvailable ? 'Configured' : 'Paste API key';
+}
+
+function getProviderHealthState(provider) {
+  return provider.health?.state ?? (provider.available ? 'configured' : 'missing_key');
+}
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString();
+}
+
+function formatLatency(ms) {
+  if (ms === null || ms === undefined) return '—';
+  return `${ms} ms`;
+}
+
+function renderHealthSummary() {
+  const root = document.getElementById('health-summary');
+  const summary = state.healthSummary;
+  if (!summary) {
+    root.innerHTML = '';
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="summary-card healthy">
+      <div class="summary-title">Healthy</div>
+      <div class="summary-value">${summary.healthy}</div>
+    </div>
+    <div class="summary-card unhealthy">
+      <div class="summary-title">Unhealthy</div>
+      <div class="summary-value">${summary.unhealthy}</div>
+    </div>
+    <div class="summary-card configured">
+      <div class="summary-title">Configured</div>
+      <div class="summary-value">${summary.configured}</div>
+    </div>
+    <div class="summary-card missing_key">
+      <div class="summary-title">Missing key</div>
+      <div class="summary-value">${summary.missing_key}</div>
+    </div>
+    <div class="summary-meta">Total: ${summary.total} · last check: ${formatTime(summary.lastCheckedAt)}</div>
+  `;
+}
+
+function renderProviders() {
+  const grid = document.getElementById('providers-grid');
+  const search = document.getElementById('provider-search').value.trim().toLowerCase();
+  const stateFilter = document.getElementById('provider-state-filter').value;
+
+  const filteredProviders = state.providers.filter(provider => {
+    const stateKey = getProviderHealthState(provider);
+    const matchesSearch = !search ||
+      provider.name.toLowerCase().includes(search) ||
+      provider.baseURL.toLowerCase().includes(search) ||
+      provider.apiKeyEnvVar.toLowerCase().includes(search);
+    const matchesState = stateFilter === 'all' || stateKey === stateFilter;
+    return matchesSearch && matchesState;
+  });
+
+  grid.innerHTML = filteredProviders.map(provider => {
+    const stateKey = getProviderHealthState(provider);
+    const statusText = healthLabels[stateKey] ?? stateKey;
+    const message = provider.health?.message ?? '';
+
+    // Find models supported by this provider from the canonical list
+    const providerModels = state.models
+      .filter(m => m.providers.some(p => p.name === provider.name))
+      .map(m => {
+        const p = m.providers.find(x => x.name === provider.name);
+        return { id: m.id, actualId: p?.providerModelId ?? m.id };
+      });
+
+    const modelListHtml = providerModels.length > 0
+      ? `<div class="model-list">${providerModels.map(m =>
+          `<div class="model-tag" title="Actual: ${m.actualId}">${m.id}</div>`
+        ).join('')}</div>`
+      : '<div class="model-list-empty">No models found</div>';
+
+    const websiteLink = provider.website
+      ? `<p><strong>Website</strong><br><a href="${provider.website}" target="_blank" rel="noopener noreferrer">${provider.website}</a></p>`
+      : '';
+
+    return `
+    <article class="provider-card ${stateKey}">
+      <div class="provider-header">
+        <div class="provider-name">${provider.name}</div>
+        <span class="provider-status ${stateKey}">${statusText}</span>
+      </div>
+      <div class="provider-info">
+        <p><strong>Base URL</strong><br>${provider.baseURL}</p>
+        <p><strong>Env</strong><br><code>${provider.apiKeyEnvVar}</code></p>
+        ${websiteLink}
+      </div>
+      <div class="provider-metrics">
+        <div>Latency: <span>${formatLatency(provider.health?.latencyMs ?? null)}</span></div>
+        <div>Last status: <span>${provider.health?.lastStatusCode ?? '—'}</span></div>
+        <div>Last success: <span>${formatTime(provider.health?.lastSuccessAt ?? null)}</span></div>
+      </div>
+      <div class="provider-models">
+        <div class="provider-models-header">
+          <button class="provider-model-toggle" type="button" data-toggle-models aria-expanded="false">
+            <span>${provider.modelCount} models</span>
+            <span class="provider-model-toggle-icon">▾</span>
+          </button>
+          <button class="btn-secondary" data-check-provider="${provider.name}">Test</button>
+        </div>
+        <div class="health-message">${message} · checked: ${formatTime(provider.health?.checkedAt ?? null)}</div>
+        <div class="provider-model-list-wrapper">
+          ${modelListHtml}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+
+  setTimeout(() => {
+    grid.querySelectorAll('[data-toggle-models]').forEach(button => {
+      button.addEventListener('click', () => {
+        const card = button.closest('.provider-card');
+        const isOpen = button.getAttribute('aria-expanded') === 'true';
+        const nextOpen = !isOpen;
+        button.setAttribute('aria-expanded', String(nextOpen));
+        card.classList.toggle('models-open', nextOpen);
+      });
+    });
+
+    grid.querySelectorAll('[data-check-provider]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const provider = button.getAttribute('data-check-provider');
+        try {
+          button.disabled = true;
+          button.textContent = 'Testing...';
+          await fetchJSON(`/api/health/check/${encodeURIComponent(provider)}`, { method: 'POST' });
+          await loadCatalog();
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Test';
+        }
+      });
+    });
+  }, 0);
+}
+
+function renderModels() {
+  const search = document.getElementById('model-search').value.trim().toLowerCase();
+  const list = document.getElementById('models-list');
+
+  const filtered = state.models.filter(model => {
+    const matchesSearch = !search || [
+      model.id,
+      model.modality || '',
+      ...model.providers.map(p => p.name),
+    ].some(value => value.toLowerCase().includes(search));
+    return matchesSearch;
+  });
+
+  list.innerHTML = filtered.map(model => `
+    <div class="model-item">
+      <div class="model-info">
+        <div>
+          <div class="model-id">${model.id}</div>
+          <div class="provider-model-id">${model.providers.map(p => `${p.name}: ${p.providerModelId}`).join(' · ')}</div>
+        </div>
+        <div class="model-provider">${model.providers.length} providers</div>
+      </div>
+      <div class="model-specs">
+        <div class="model-spec">Context <span>${model.context ? formatNumber(model.context) : '—'}</span></div>
+        <div class="model-spec">Output <span>${model.maxOutput ? formatNumber(model.maxOutput) : '—'}</span></div>
+        <div class="model-spec">Mode <span>${model.modality || '—'}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderKeys() {
+  const container = document.getElementById('keys-form');
+  container.innerHTML = state.providers.map(provider => {
+    const websiteLink = provider.website
+      ? ` <a href="${provider.website}" target="_blank" rel="noopener noreferrer" class="provider-website-link" title="Get API key">🔗</a>`
+      : '';
+
+    return `
+    <div class="key-input-group">
+      <label for="key-${provider.name}">${provider.name}${websiteLink} <span class="env-hint">(${provider.apiKeyEnvVar})</span></label>
+      <input
+        id="key-${provider.name}"
+        type="password"
+        data-env-var="${provider.apiKeyEnvVar}"
+        class="${provider.available ? 'set' : ''}"
+        placeholder="${maskPlaceholder(provider.available)}"
+        autocomplete="off"
+      >
+    </div>`;
+  }).join('');
+}
+
+function renderTestModelOptions() {
+  const select = document.getElementById('test-model');
+  select.innerHTML = state.models
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(model => `<option value="${model.id}">${model.id}</option>`)
+    .join('');
+}
+
+function renderSyncMeta() {
+  const root = document.getElementById('sync-meta');
+  if (!root) return;
+  const metas = state.syncMetas;
+  const entries = Object.entries(metas);
+  if (entries.length === 0) {
+    root.textContent = 'Models: using built-in lists';
+    return;
+  }
+  root.innerHTML = entries.map(([name, meta]) => {
+    const sourceLabel = meta.source === 'api' ? 'live' : 'cached';
+    return `<span>${name}: ${sourceLabel} @ ${formatTime(meta.updatedAt)}</span>`;
+  }).join(' · ');
+}
+
+async function loadCatalog() {
+  const data = await fetchJSON('/api/catalog');
+  state.providers = data.providers;
+  state.models = data.models;
+  state.healthSummary = data.healthSummary ?? null;
+  state.syncMetas = data.syncMetas ?? {};
+  renderHealthSummary();
+  renderProviders();
+  renderSyncMeta();
+  renderModels();
+  renderKeys();
+  renderTestModelOptions();
+}
+
+async function saveKeys() {
+  const inputs = Array.from(document.querySelectorAll('#keys-form input'));
+  const keys = {};
+  for (const input of inputs) {
+    if (input.value.trim()) {
+      keys[input.dataset.envVar] = input.value.trim();
+    }
+  }
+
+  const gatewayInput = document.getElementById('gateway-key');
+  const gatewayKey = gatewayInput ? gatewayInput.value.trim() : '';
+
+  const result = await fetchJSON('/api/config/keys', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ keys, gatewayKey }),
+  });
+
+  alert(`Saved ${result.updated.length} API key(s).`);
+  await loadCatalog();
+  inputs.forEach(input => {
+    input.value = '';
+  });
+}
+
+async function sendTestRequest() {
+  const resultContent = document.getElementById('result-content');
+  const routeInfo = document.getElementById('route-info');
+  const model = document.getElementById('test-model').value;
+  const message = document.getElementById('test-message').value.trim();
+  const temperature = Number(document.getElementById('test-temp').value);
+  const maxTokens = Number(document.getElementById('test-max-tokens').value);
+  const stream = document.getElementById('test-stream').checked;
+
+  if (!message) {
+    alert('Please enter a message.');
+    return;
+  }
+
+  resultContent.textContent = 'Loading...';
+  routeInfo.textContent = '';
+
+  try {
+    if (stream) {
+      const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: message }],
+          temperature,
+          max_tokens: maxTokens,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error?.message ?? `Request failed: ${response.status}`);
+      }
+
+      const provider = response.headers.get('X-Freeway-Provider') ?? 'unknown';
+      routeInfo.textContent = `Provider: ${provider} · Request model: ${model}`;
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let full = '';
+      resultContent.textContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        full += chunk;
+        resultContent.textContent = full;
+      }
+    } else {
+      const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: message }],
+          temperature,
+          max_tokens: maxTokens,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error?.message ?? `Request failed: ${response.status}`);
+      }
+
+      const provider = response.headers.get('X-Freeway-Provider') ?? 'unknown';
+      const payload = await response.json();
+      const actualModel = payload.model ?? 'unknown';
+      routeInfo.textContent = `Provider: ${provider} · Request model: ${model} · Actual model: ${actualModel}`;
+      resultContent.textContent = JSON.stringify(payload, null, 2);
+    }
+  } catch (error) {
+    resultContent.textContent = error.message;
+    routeInfo.textContent = '';
+  }
+}
+
+function formatNumber(value) {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${Math.round(value / 1000)}K`;
+  return String(value);
+}
+
+function setupTabs() {
+  const buttons = document.querySelectorAll('.tab-btn');
+  const tabs = document.querySelectorAll('.tab-content');
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      buttons.forEach(item => item.classList.remove('active'));
+      tabs.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      document.getElementById(button.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+function bindEvents() {
+  document.getElementById('model-search').addEventListener('input', renderModels);
+  document.getElementById('provider-search').addEventListener('input', renderProviders);
+  document.getElementById('provider-state-filter').addEventListener('change', renderProviders);
+  document.getElementById('save-keys').addEventListener('click', saveKeys);
+  document.getElementById('send-test').addEventListener('click', sendTestRequest);
+  document.getElementById('check-all-health').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    try {
+      button.disabled = true;
+      button.textContent = 'Testing all...';
+      await fetchJSON('/api/health/check-all', { method: 'POST' });
+      await loadCatalog();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Test All Providers';
+    }
+  });
+
+  document.getElementById('refresh-models').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    try {
+      button.disabled = true;
+      button.textContent = 'Syncing...';
+      await fetchJSON('/api/models/refresh', { method: 'POST' });
+      await loadCatalog();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Refresh All Models';
+    }
+  });
+}
+
+async function init() {
+  setupTabs();
+  bindEvents();
+  await loadCatalog();
+}
+
+init().catch(error => {
+  document.getElementById('result-content').textContent = error.message;
+});

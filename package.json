@@ -1,0 +1,27 @@
+{
+  "name": "freeway",
+  "version": "0.1.0",
+  "description": "OpenAI-compatible router for free LLM APIs",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "llm",
+    "router",
+    "free-api",
+    "openai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "undici": "^8.1.0"
+  }
+}
