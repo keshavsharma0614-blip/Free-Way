@@ -1,12 +1,15 @@
 <p align="center">
-  <img src="Assets/Head.png" alt="Freeway 封面" width="880" />
+  <img src="Assets/Head.png" alt="Freeway 头图" width="960" />
 </p>
 
 <h1 align="center">Freeway</h1>
 
 <p align="center">
-  一个面向免费模型生态的统一网关：兼容 OpenAI API，支持 Anthropic 协议桥接，
-  内置控制台、健康检测、动态模型同步与本地配置持久化。
+  <strong>Connect to every free LLM API that matters.</strong>
+</p>
+
+<p align="center">
+  Freeway 是一个开源网关，目标是在快速变化的免费 LLM 生态之上，提供更统一、更兼容的本地 API 聚合层。
 </p>
 
 <p align="center">
@@ -15,44 +18,89 @@
   <a href="./contribution.md">贡献指南 (中文)</a>
 </p>
 
-## 项目简介
+## 项目使命
 
-Freeway 是一个 TypeScript/Node.js 本地网关，目标是把多个免费 LLM Provider 统一在一个调用入口下，便于本地开发、代理聚合与调试验证。
+Freeway 的目标，是持续追踪、归一化并聚合不断扩张的免费 LLM API 生态。
 
-核心能力：
+它不是只包一层单一 Provider，也不是只代理少数几个接口；它更像一个网关层，持续吸收真正重要的 Provider、模型能力和兼容性差异，并把这些差异收敛成更稳定的本地调用入口。
+
+## 为什么要做 Freeway
+
+免费模型生态增长很快，但开发体验依然高度碎片化：
+
+- 不同 Provider 的接口行为和返回结构并不一致
+- 模型可用性变化很快
+- 免费额度、访问限制和稳定性会不断变化
+- 脚本、Agent 和本地工具依然希望只有一个可靠的 base URL
+
+Freeway 的价值，就是把这些碎片化差异压缩进一个更容易接入、更容易运维、也更容易扩展的本地网关里。
+
+## Freeway 提供什么
+
 - OpenAI 兼容接口：`/v1/chat/completions`、`/v1/models`
 - Anthropic 兼容接口：`/v1/messages`
-- Provider 健康状态检测（状态码、延迟、最近成功时间）
-- 内置 Web 控制台（Providers / Models / API Keys / Test）
-- 运行时密钥管理 + `.freeway/config.json` 持久化
-- 模型列表缓存启动 + 后台同步刷新
+- Provider 聚合与路由
+- 运行时 API Key 管理
+- 健康检查与本地 Web 控制台
+- 网关层的非流式 usage 归一化
 
-## 功能亮点
+## Coverage 理念
 
-- **统一路由，多 Provider 复用同一模型 ID**
-  - 同名模型可在多个 Provider 间切换。
-  - 支持通过 `provider/model` 强制指定 Provider，例如：`groq/llama-3.3-70b`。
-- **可视化运维控制台**
-  - 提供状态筛选、单 Provider 检测、全量检测、模型刷新、在线请求测试。
-- **Anthropic 协议桥接**
-  - 自动完成 Anthropic Messages 与 OpenAI 风格请求/响应的转换。
-- **本地持久化配置**
-  - 可通过 UI/API 保存密钥，重启后自动恢复。
+Freeway 不把自己定位成某一个 API Vendor 的薄包装。
 
-## 已配置 Provider
+它是一个聚合层，目标是持续跟上免费 LLM 生态的变化：追踪有价值的 Provider，抹平兼容性差异，并把最终暴露给本地工具、脚本和 Agent 的接口做得更稳定。
 
-当前在 `src/providers/index.ts` 内置：
+它的目标是更广覆盖，但实现策略保持务实：优先接入真正重要的免费 API，优先解决真实兼容问题，优先让网关在不断变化的生态里保持可用。
+
+## 生态信息源
+
+Freeway 会持续参考公开的免费模型生态资源，包括：
+
+- [awesome-free-llm-apis](https://github.com/mnfst/awesome-free-llm-apis)
+- [free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources)
+
+这些是生态参考信息源，不是项目依赖。它们帮助 Freeway 持续判断应该跟踪哪些 Provider、模型和兼容性方向。
+
+## 当前能力
+
+### 兼容层
+
+- OpenAI 兼容 chat completions
+- OpenAI 兼容 models 列表
+- Anthropic Messages API 桥接
+- OpenAI / Anthropic 非流式响应的稳定 usage 归一化
+- Anthropic streaming 保守策略：不再输出误导性的 0 usage 占位
+
+### 网关运维能力
+
+- Provider 健康检查与状态汇总
+- 模型目录刷新与缓存回退
+- 本地运行时密钥管理
+- 可选网关鉴权：`FREEWAY_API_KEY`
+- 可选统一出站代理：`HTTP_PROXY`
+
+### 本地控制台
+
+- 浏览 Providers 与模型
+- 查看 Provider 健康状态与延迟
+- 配置 Provider Keys
+- 刷新模型目录
+- 在浏览器里测试本地请求
+
+## 已支持 Provider
+
+当前在 `src/providers/index.ts` 中接入：
 
 `openrouter`、`groq`、`github`、`cloudflare`、`siliconflow`、`cerebras`、`mistral`、`cohere`、`nvidia`、`llm7`、`kilo`、`zhipu`、`opencode`
 
 ## 快速开始
 
-### 1）环境要求
+### 1. 环境要求
 
 - Node.js 18+
 - npm
 
-### 2）安装并启动
+### 2. 安装并启动
 
 ```bash
 npm install
@@ -60,21 +108,25 @@ npm run build
 npm start
 ```
 
-默认地址：`http://localhost:8787`
+默认服务地址：
 
-### 3）打开控制台
+- `http://localhost:8787`
+
+### 3. 打开控制台
 
 访问：
 
 - `http://localhost:8787/`
 
-在 **API Keys** 页面填写 Provider Key，或直接使用环境变量。
+然后在 **API Keys** 页面配置 Provider Key，或直接通过环境变量提供。
 
 ## 配置说明
 
-### 密钥生效优先级
+### 密钥优先级
 
-1. 运行时（通过 UI/API 设置）
+实际生效顺序：
+
+1. 运行时通过 UI/API 设置的密钥
 2. 环境变量
 3. 持久化文件 `.freeway/config.json`
 
@@ -82,7 +134,7 @@ npm start
 
 | 变量名 | 作用 |
 |---|---|
-| `FREEWAY_API_KEY` | 可选，网关访问鉴权 |
+| `FREEWAY_API_KEY` | 可选，调用 Freeway 时的网关鉴权密钥 |
 | `OPENROUTER_API_KEY` | OpenRouter 密钥 |
 | `GROQ_API_KEY` | Groq 密钥 |
 | `GITHUB_TOKEN` | GitHub Models Token |
@@ -95,13 +147,13 @@ npm start
 | `NVIDIA_API_KEY` | NVIDIA NIM 密钥 |
 | `LLM7_API_KEY` | LLM7 密钥 |
 | `KILO_API_KEY` | Kilo 密钥 |
-| `ZHIPU_API_KEY` | 智谱 BigModel 密钥 |
+| `ZHIPU_API_KEY` | 智谱 / BigModel 密钥 |
 | `OPENCODE_API_KEY` | OpenCode 密钥 |
 | `HTTP_PROXY` | 可选，统一出站 HTTP 代理 |
 
 ## API 调用示例
 
-### OpenAI 兼容接口
+### OpenAI 兼容 chat completion
 
 ```bash
 curl http://localhost:8787/v1/chat/completions \
@@ -114,7 +166,7 @@ curl http://localhost:8787/v1/chat/completions \
   }'
 ```
 
-### 指定 Provider 调用
+### 显式指定 Provider
 
 ```json
 {
@@ -122,7 +174,7 @@ curl http://localhost:8787/v1/chat/completions \
 }
 ```
 
-### Anthropic 兼容接口
+### Anthropic 兼容 messages 请求
 
 ```bash
 curl http://localhost:8787/v1/messages \
@@ -135,17 +187,25 @@ curl http://localhost:8787/v1/messages \
   }'
 ```
 
+### Claude 风格本地 base URL 用法
+
+对于支持自定义 Anthropic base URL 的客户端，直接指向：
+
+- `http://localhost:8787`
+
+Freeway 会在这个 origin 下提供兼容路由。
+
 ## 接口清单
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | `GET` | `/` | Web 控制台 |
 | `GET` | `/health` | 服务健康检查 |
-| `GET` | `/api/catalog` | Provider/Model/Health 汇总 |
+| `GET` | `/api/catalog` | Provider / Model / Health 汇总 |
 | `POST` | `/api/health/check/:provider` | 单 Provider 健康检测 |
 | `POST` | `/api/health/check-all` | 全量 Provider 健康检测 |
 | `POST` | `/api/models/refresh` | 刷新模型列表 |
-| `POST` | `/api/config/keys` | 保存运行时与持久化密钥 |
+| `POST` | `/api/config/keys` | 保存运行时 / 持久化密钥 |
 | `GET` | `/v1/models` | OpenAI 兼容模型列表 |
 | `POST` | `/v1/chat/completions` | OpenAI 兼容对话接口 |
 | `POST` | `/v1/messages` | Anthropic 兼容对话接口 |
@@ -163,19 +223,22 @@ src/
   config*.ts              # 运行时与持久化配置
   health.ts               # 健康检查与聚合
   anthropic-bridge.ts     # Anthropic 与 OpenAI 协议转换
+  usage.ts                # 网关层 usage 归一化辅助模块
 ```
 
 ## 开发命令
 
 ```bash
-npm run dev     # TypeScript watch 编译
-npm run build   # 编译到 dist/
-npm start       # 启动服务
+npm run dev
+npm run build
+npm start
+npm run test:usage
 ```
 
 ## 贡献
 
-请阅读 [contribution.md](./contribution.md)。
+- English: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- 中文： [contribution.md](./contribution.md)
 
 ## License
 
