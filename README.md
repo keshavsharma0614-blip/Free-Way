@@ -5,8 +5,11 @@
 <h1 align="center">Freeway</h1>
 
 <p align="center">
-  A local multi-provider LLM gateway with OpenAI-compatible and Anthropic-compatible APIs,
-  a built-in web console, provider health checks, dynamic model sync, and runtime key management.
+  <strong>Connect to every free LLM API that matters.</strong>
+</p>
+
+<p align="center">
+  Freeway is an open-source gateway for aggregating the fast-moving free LLM ecosystem behind a cleaner, more compatible local API surface.
 </p>
 
 <p align="center">
@@ -15,53 +18,74 @@
   <a href="./contribution.md">贡献指南 (中文)</a>
 </p>
 
-<p align="center">
-  <strong>One local endpoint.</strong>
-  <strong>Many free-capable providers.</strong>
-  <strong>One operational console.</strong>
-</p>
+## Mission
 
-## Why Freeway
+Freeway is built to track, normalize, and aggregate the growing landscape of free LLM APIs.
 
-Freeway lets you put a single local gateway in front of multiple free or low-friction LLM providers and expose them through a cleaner, more predictable API surface.
+The goal is not to wrap one provider. The goal is to offer one gateway layer that can keep absorbing the providers, models, and compatibility quirks that matter across the free-model ecosystem.
 
-It is designed for day-to-day use with coding agents, scripts, local tools, and experimentation workflows where you want:
+## Why this exists
 
-- one base URL instead of switching provider endpoints
-- one place to manage provider keys and health status
-- OpenAI-compatible chat completions and model listing
-- Anthropic-compatible messages bridging
-- a local control panel for routing, testing, and observability
+The free-model ecosystem is expanding quickly, but the developer experience is still fragmented:
 
-## Highlights
+- provider APIs differ in behavior and response shape
+- model availability changes quickly
+- free tiers appear, move, rate-limit, or disappear
+- clients and coding agents still want one predictable local endpoint
 
-- **Unified local gateway**
-  - Serve multiple providers behind one local service at `http://localhost:8787`.
-  - Route by canonical model name or force a provider with `provider/model` syntax.
+Freeway exists to compress that fragmentation into a single local gateway that is easier to operate, easier to integrate, and easier to extend.
 
-- **OpenAI + Anthropic compatibility**
-  - OpenAI-compatible endpoints: `/v1/chat/completions`, `/v1/models`
-  - Anthropic-compatible endpoint: `/v1/messages`
-  - Anthropic requests are bridged into OpenAI-style requests internally.
+## What Freeway provides
 
-- **Usage normalization at the gateway layer**
-  - Non-stream OpenAI-compatible responses return stable `usage` fields.
-  - Non-stream Anthropic-compatible responses return stable `usage.input_tokens` / `usage.output_tokens`.
-  - Anthropic streaming avoids misleading placeholder zero-usage payloads.
+- OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/models`)
+- Anthropic-compatible endpoint (`/v1/messages`)
+- Provider aggregation and routing
+- Runtime API key management
+- Health checks and a local web console
+- Gateway-level usage normalization for non-stream responses
 
-- **Built-in web console**
-  - Browse providers and models
-  - Check provider health and latency
-  - Configure runtime API keys
-  - Refresh model catalogs
-  - Test requests locally
+## Coverage philosophy
 
-- **Operationally practical defaults**
-  - Cached model lists on boot
-  - Background model refresh
-  - Local key persistence
-  - Optional gateway auth via `FREEWAY_API_KEY`
-  - Optional outbound proxy via `HTTP_PROXY`
+Freeway is not positioned as a thin wrapper for one API vendor.
+
+It is an aggregation layer designed to keep up with the free LLM landscape over time. That means tracking useful providers, normalizing compatibility gaps, and making the resulting surface more stable for local tools, scripts, and agent workflows.
+
+The ambition is broad coverage. The implementation stays pragmatic: integrate what matters, keep the gateway reliable, and improve compatibility as the ecosystem shifts.
+
+## Ecosystem references
+
+Freeway tracks the broader free-model ecosystem through public resource collections, including:
+
+- [awesome-free-llm-apis](https://github.com/mnfst/awesome-free-llm-apis)
+- [free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources)
+
+These are ecosystem references, not hard dependencies. They help guide ongoing provider coverage and compatibility work.
+
+## Current capabilities
+
+### Compatibility layer
+
+- OpenAI-compatible chat completions
+- OpenAI-compatible model listing
+- Anthropic-compatible messages API bridging
+- Stable non-stream usage normalization across OpenAI-compatible and Anthropic-compatible responses
+- Conservative Anthropic streaming behavior without fake zero-usage placeholders
+
+### Gateway operations
+
+- Provider health checks and status summaries
+- Model catalog refresh and cache fallback
+- Local runtime key management
+- Optional gateway auth with `FREEWAY_API_KEY`
+- Optional outbound proxy support with `HTTP_PROXY`
+
+### Local console
+
+- Browse providers and models
+- Check provider health and latency
+- Configure provider keys
+- Refresh model catalogs
+- Test local requests from the browser
 
 ## Supported Providers
 
