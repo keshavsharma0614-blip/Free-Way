@@ -16,6 +16,7 @@
     <nav class="tabs">
       <button class="tab-btn active" data-tab="providers">Providers</button>
       <button class="tab-btn" data-tab="models">Models</button>
+      <button class="tab-btn" data-tab="usage">Usage</button>
       <button class="tab-btn" data-tab="keys">API Keys</button>
       <button class="tab-btn" data-tab="test">Test</button>
     </nav>
@@ -52,6 +53,30 @@
       </div>
       <div class="models-list" id="models-list">
         <!-- Dynamic content -->
+      </div>
+    </section>
+
+    <!-- Usage Tab -->
+    <section id="usage" class="tab-content">
+      <h2>Usage Statistics</h2>
+      <p class="hint">Aggregated from non-streaming requests only. Streaming calls are not counted yet.</p>
+      <div class="usage-table-wrapper">
+        <table class="usage-table" id="usage-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Provider</th>
+              <th class="numeric">Calls</th>
+              <th class="numeric">Prompt Tokens</th>
+              <th class="numeric">Completion Tokens</th>
+              <th class="numeric">Total Tokens</th>
+              <th>Last Used</th>
+            </tr>
+          </thead>
+          <tbody id="usage-table-body">
+            <tr><td colspan="7" class="empty">No usage recorded yet.</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 

@@ -11,6 +11,7 @@ import {
   type AnthropicRequest,
 } from './anthropic-bridge.js';
 import { estimateAnthropicCountTokens, normalizeOpenAIResponseUsage } from './usage.js';
+import { usageTracker } from './usage-tracker.js';
 
 // Configure HTTP proxy for all fetch() calls if HTTP_PROXY is set
 try {
@@ -207,6 +208,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (pathname === '/api/usage' && req.method === 'GET') {
+      sendJSON(res, 200, { records: usageTracker.getStats() });
+      return;
+    }
+
     if (pathname === '/api/config/keys' && req.method === 'POST') {
       const raw = await readBody(req);
       const payload = JSON.parse(raw) as { keys?: Record<string, string>; gatewayKey?: string };
@@ -303,6 +309,10 @@ const server = http.createServer(async (req, res) => {
         );
         const promptText = JSON.stringify(request.messages ?? []);
         const normalizedBody = normalizeOpenAIResponseUsage(parsedBody, promptText, completionText);
+        const usage = (normalizedBody.usage as Record<string, number> | undefined);
+        if (usage) {
+          usageTracker.record(request.model, provider.name, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0);
+        }
         const body = JSON.stringify(normalizedBody);
         res.setHeader('Content-Length', Buffer.byteLength(body));
         res.writeHead(response.status);
@@ -434,7 +444,10 @@ const server = http.createServer(async (req, res) => {
         } else {
           const openAIBody = (await response.json()) as Record<string, unknown>;
           const anthropicRes = toAnthropicResponse(openAIBody, anthropicReq.model);
-
+          const u = (anthropicRes.usage as Record<string, number> | undefined);
+          if (u) {
+            usageTracker.record(openAIReq.model, provider.name, u.input_tokens ?? 0, u.output_tokens ?? 0);
+          }
           const body = JSON.stringify(anthropicRes);
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('X-Freeway-Provider', provider.name);
@@ -463,6 +476,7 @@ const server = http.createServer(async (req, res) => {
 
 export async function startServer() {
   await initializePersistedApiKeys(allowedEnvVars);
+  await usageTracker.init();
 
   // Load cached model lists so we have something at boot
   await loadAllModelCaches();
@@ -481,6 +495,7 @@ export async function startServer() {
     console.log(`Freeway running on http://localhost:${PORT}`);
     console.log(`  GET  /`);
     console.log(`  GET  /api/catalog`);
+    console.log(`  GET  /api/usage`);
     console.log(`  POST /api/health/check/:provider`);
     console.log(`  POST /api/health/check-all`);
     console.log(`  POST /api/config/keys`);

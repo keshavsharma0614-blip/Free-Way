@@ -3,6 +3,7 @@ const state = {
   models: [],
   healthSummary: null,
   syncMetas: {},
+  usageRecords: [],
 };
 
 const healthLabels = {
@@ -229,6 +230,26 @@ function renderTestModelOptions() {
     .join('');
 }
 
+function renderUsage() {
+  const tbody = document.getElementById('usage-table-body');
+  const records = state.usageRecords;
+  if (!records || records.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">No usage recorded yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = records.map(r => `
+    <tr>
+      <td><code>${r.modelId}</code></td>
+      <td><span class="provider-badge">${r.providerName}</span></td>
+      <td class="numeric">${formatNumber(r.callCount)}</td>
+      <td class="numeric">${formatNumber(r.promptTokens)}</td>
+      <td class="numeric">${formatNumber(r.completionTokens)}</td>
+      <td class="numeric"><strong>${formatNumber(r.totalTokens)}</strong></td>
+      <td>${formatTime(r.lastUsedAt)}</td>
+    </tr>
+  `).join('');
+}
+
 function renderSyncMeta() {
   const root = document.getElementById('sync-meta');
   if (!root) return;
@@ -244,6 +265,16 @@ function renderSyncMeta() {
   }).join(' · ');
 }
 
+async function loadUsage() {
+  try {
+    const data = await fetchJSON('/api/usage');
+    state.usageRecords = data.records ?? [];
+    renderUsage();
+  } catch {
+    // ignore usage fetch errors
+  }
+}
+
 async function loadCatalog() {
   const data = await fetchJSON('/api/catalog');
   state.providers = data.providers;
@@ -253,6 +284,7 @@ async function loadCatalog() {
   renderHealthSummary();
   renderProviders();
   renderSyncMeta();
+  renderUsage();
   renderModels();
   renderKeys();
   renderTestModelOptions();
@@ -424,6 +456,7 @@ async function init() {
   setupTabs();
   bindEvents();
   await loadCatalog();
+  await loadUsage();
 }
 
 init().catch(error => {
