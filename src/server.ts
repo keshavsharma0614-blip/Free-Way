@@ -10,7 +10,7 @@ import {
   toAnthropicResponse,
   type AnthropicRequest,
 } from './anthropic-bridge.js';
-import { estimateAnthropicCountTokens, normalizeOpenAIResponseUsage } from './usage.js';
+import { estimateAnthropicCountTokens, estimateUsage, normalizeOpenAIResponseUsage } from './usage.js';
 import { usageTracker } from './usage-tracker.js';
 
 // Configure HTTP proxy for all fetch() calls if HTTP_PROXY is set
@@ -288,17 +288,60 @@ const server = http.createServer(async (req, res) => {
 
       if (request.stream) {
         sendStream(res, response.status);
+        let completionBuffer = '';
+        let streamUsage: Record<string, number> | null = null;
         if (response.body) {
           const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let sseBuffer = '';
           try {
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
               res.write(value);
+              sseBuffer += decoder.decode(value, { stream: true });
+              const lines = sseBuffer.split('\n');
+              sseBuffer = lines.pop() ?? '';
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const json = line.slice(6);
+                  if (json === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(json) as Record<string, unknown>;
+                    const delta = ((parsed.choices as Array<Record<string, unknown>> | undefined)?.[0]?.delta as Record<string, unknown> | undefined)?.content;
+                    if (typeof delta === 'string') completionBuffer += delta;
+                    const usage = (parsed.usage as Record<string, number> | undefined);
+                    if (usage) streamUsage = usage;
+                  } catch {
+                    // skip malformed
+                  }
+                }
+              }
+            }
+            if (sseBuffer.trim().startsWith('data: ')) {
+              const json = sseBuffer.trim().slice(6);
+              if (json && json !== '[DONE]') {
+                try {
+                  const parsed = JSON.parse(json) as Record<string, unknown>;
+                  const delta = ((parsed.choices as Array<Record<string, unknown>> | undefined)?.[0]?.delta as Record<string, unknown> | undefined)?.content;
+                  if (typeof delta === 'string') completionBuffer += delta;
+                  const usage = (parsed.usage as Record<string, number> | undefined);
+                  if (usage) streamUsage = usage;
+                } catch {
+                  // skip malformed
+                }
+              }
             }
           } finally {
             reader.releaseLock();
           }
+        }
+        if (streamUsage) {
+          usageTracker.record(request.model, provider.name, streamUsage.prompt_tokens ?? 0, streamUsage.completion_tokens ?? 0);
+        } else if (completionBuffer) {
+          const promptText = JSON.stringify(request.messages ?? []);
+          const est = estimateUsage({ promptText, completionText: completionBuffer });
+          usageTracker.record(request.model, provider.name, est.prompt_tokens, est.completion_tokens);
         }
         res.end();
       } else {
@@ -387,6 +430,7 @@ const server = http.createServer(async (req, res) => {
 
           res.write(anthropicStreamStart(anthropicReq.model));
           const streamTransformer = createAnthropicStreamTransformer();
+          let completionBuffer = '';
 
           if (response.body) {
             const reader = response.body.getReader();
@@ -414,6 +458,8 @@ const server = http.createServer(async (req, res) => {
 
                   try {
                     const parsed = JSON.parse(json) as Record<string, unknown>;
+                    const delta = ((parsed.choices as Array<Record<string, unknown>> | undefined)?.[0]?.delta as Record<string, unknown> | undefined)?.content;
+                    if (typeof delta === 'string') completionBuffer += delta;
                     const transformed = streamTransformer.transform(parsed);
                     if (transformed) res.write(transformed);
                   } catch {
@@ -427,6 +473,8 @@ const server = http.createServer(async (req, res) => {
                 if (json && json !== '[DONE]') {
                   try {
                     const parsed = JSON.parse(json) as Record<string, unknown>;
+                    const delta = ((parsed.choices as Array<Record<string, unknown>> | undefined)?.[0]?.delta as Record<string, unknown> | undefined)?.content;
+                    if (typeof delta === 'string') completionBuffer += delta;
                     const transformed = streamTransformer.transform(parsed);
                     if (transformed) res.write(transformed);
                   } catch {
@@ -440,6 +488,11 @@ const server = http.createServer(async (req, res) => {
           }
 
           res.write(streamTransformer.end());
+          if (completionBuffer) {
+            const promptText = JSON.stringify(openAIReq.messages ?? []);
+            const est = estimateUsage({ promptText, completionText: completionBuffer });
+            usageTracker.record(openAIReq.model, provider.name, est.prompt_tokens, est.completion_tokens);
+          }
           res.end();
         } else {
           const openAIBody = (await response.json()) as Record<string, unknown>;
