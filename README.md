@@ -123,6 +123,60 @@ Then configure provider keys in the **API Keys** tab, or provide them with envir
 
 ## Configuration
 
+## Configure your agent
+
+Freeway exposes **both** OpenAI and Anthropic compatible endpoints, so most coding agents and LLM clients can connect directly.
+
+> Detailed per-agent setup guides are available in [`docs/agents/`](./docs/agents/).
+
+### Claude Code
+
+Set the base URL to Freeway:
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:8787
+export ANTHROPIC_API_KEY=<your FREEWAY_API_KEY or any non-empty string>
+```
+
+Then run `claude` normally. Freeway routes Claude Code's Anthropic API calls to the best available free provider.
+
+### Cursor
+
+In Cursor Settings → Models → OpenAI API Key:
+- Base URL: `http://localhost:8787/v1`
+- API Key: your `FREEWAY_API_KEY` (or leave empty if gateway auth is off)
+
+### Continue.dev
+
+In `config.json`:
+
+```json
+{
+  "models": [
+    {
+      "title": "Freeway",
+      "provider": "openai",
+      "model": "llama-3.3-70b",
+      "apiBase": "http://localhost:8787/v1",
+      "apiKey": "your FREEWAY_API_KEY"
+    }
+  ]
+}
+```
+
+### OpenCode
+
+Set environment variables before running:
+
+```bash
+export OPENAI_BASE_URL=http://localhost:8787/v1
+export OPENAI_API_KEY=<your FREEWAY_API_KEY>
+```
+
+### Any other OpenAI/Anthropic client
+
+Point the base URL to `http://localhost:8787` (Anthropic) or `http://localhost:8787/v1` (OpenAI) and provide your gateway key if configured.
+
 ### API key precedence
 
 Effective key precedence is:
@@ -195,60 +249,6 @@ For Anthropic-compatible clients that let you override the base URL, point them 
 - `http://localhost:8787`
 
 Freeway serves the compatibility routes under that origin.
-
-## Configure your agent
-
-Freeway exposes **both** OpenAI and Anthropic compatible endpoints, so most coding agents and LLM clients can connect directly.
-
-> Detailed per-agent setup guides are available in [`docs/agents/`](./docs/agents/).
-
-### Claude Code
-
-Set the base URL to Freeway:
-
-```bash
-export ANTHROPIC_BASE_URL=http://localhost:8787
-export ANTHROPIC_API_KEY=<your FREEWAY_API_KEY or any non-empty string>
-```
-
-Then run `claude` normally. Freeway routes Claude Code's Anthropic API calls to the best available free provider.
-
-### Cursor
-
-In Cursor Settings → Models → OpenAI API Key:
-- Base URL: `http://localhost:8787/v1`
-- API Key: your `FREEWAY_API_KEY` (or leave empty if gateway auth is off)
-
-### Continue.dev
-
-In `config.json`:
-
-```json
-{
-  "models": [
-    {
-      "title": "Freeway",
-      "provider": "openai",
-      "model": "llama-3.3-70b",
-      "apiBase": "http://localhost:8787/v1",
-      "apiKey": "your FREEWAY_API_KEY"
-    }
-  ]
-}
-```
-
-### OpenCode
-
-Set environment variables before running:
-
-```bash
-export OPENAI_BASE_URL=http://localhost:8787/v1
-export OPENAI_API_KEY=<your FREEWAY_API_KEY>
-```
-
-### Any other OpenAI/Anthropic client
-
-Point the base URL to `http://localhost:8787` (Anthropic) or `http://localhost:8787/v1` (OpenAI) and provide your gateway key if configured.
 
 ## HTTP Endpoints
 

@@ -123,6 +123,60 @@ npm start
 
 ## 配置说明
 
+## 配置你的 Agent
+
+Freeway 同时暴露 **OpenAI 和 Anthropic 兼容接口**，绝大多数编程 Agent 和 LLM 客户端都可以直接连接。
+
+> 各 Agent 的详细配置指南请参考 [`docs/agents/`](./docs/agents/) 目录。
+
+### Claude Code
+
+设置 base URL 指向 Freeway：
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:8787
+export ANTHROPIC_API_KEY=<你的 FREEWAY_API_KEY 或任意非空字符串>
+```
+
+然后正常运行 `claude` 即可。Freeway 会把 Claude Code 的 Anthropic API 调用路由到当前最优的免费 Provider。
+
+### Cursor
+
+在 Cursor Settings → Models → OpenAI API Key 中：
+- Base URL: `http://localhost:8787/v1`
+- API Key: 你的 `FREEWAY_API_KEY`（如果网关鉴权未开启可留空）
+
+### Continue.dev
+
+在 `config.json` 中：
+
+```json
+{
+  "models": [
+    {
+      "title": "Freeway",
+      "provider": "openai",
+      "model": "llama-3.3-70b",
+      "apiBase": "http://localhost:8787/v1",
+      "apiKey": "你的 FREEWAY_API_KEY"
+    }
+  ]
+}
+```
+
+### OpenCode
+
+运行前设置环境变量：
+
+```bash
+export OPENAI_BASE_URL=http://localhost:8787/v1
+export OPENAI_API_KEY=<你的 FREEWAY_API_KEY>
+```
+
+### 其他 OpenAI/Anthropic 客户端
+
+将 base URL 指向 `http://localhost:8787`（Anthropic）或 `http://localhost:8787/v1`（OpenAI），如果配置了网关鉴权则提供对应的 key。
+
 ### 密钥优先级
 
 实际生效顺序：
@@ -195,60 +249,6 @@ curl http://localhost:8787/v1/messages \
 - `http://localhost:8787`
 
 Freeway 会在这个 origin 下提供兼容路由。
-
-## 配置你的 Agent
-
-Freeway 同时暴露 **OpenAI 和 Anthropic 兼容接口**，绝大多数编程 Agent 和 LLM 客户端都可以直接连接。
-
-> 各 Agent 的详细配置指南请参考 [`docs/agents/`](./docs/agents/) 目录。
-
-### Claude Code
-
-设置 base URL 指向 Freeway：
-
-```bash
-export ANTHROPIC_BASE_URL=http://localhost:8787
-export ANTHROPIC_API_KEY=<你的 FREEWAY_API_KEY 或任意非空字符串>
-```
-
-然后正常运行 `claude` 即可。Freeway 会把 Claude Code 的 Anthropic API 调用路由到当前最优的免费 Provider。
-
-### Cursor
-
-在 Cursor Settings → Models → OpenAI API Key 中：
-- Base URL: `http://localhost:8787/v1`
-- API Key: 你的 `FREEWAY_API_KEY`（如果网关鉴权未开启可留空）
-
-### Continue.dev
-
-在 `config.json` 中：
-
-```json
-{
-  "models": [
-    {
-      "title": "Freeway",
-      "provider": "openai",
-      "model": "llama-3.3-70b",
-      "apiBase": "http://localhost:8787/v1",
-      "apiKey": "你的 FREEWAY_API_KEY"
-    }
-  ]
-}
-```
-
-### OpenCode
-
-运行前设置环境变量：
-
-```bash
-export OPENAI_BASE_URL=http://localhost:8787/v1
-export OPENAI_API_KEY=<你的 FREEWAY_API_KEY>
-```
-
-### 其他 OpenAI/Anthropic 客户端
-
-将 base URL 指向 `http://localhost:8787`（Anthropic）或 `http://localhost:8787/v1`（OpenAI），如果配置了网关鉴权则提供对应的 key。
 
 ## 接口清单
 
