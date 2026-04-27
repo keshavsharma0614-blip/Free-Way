@@ -9,11 +9,13 @@ export ANTHROPIC_BASE_URL=http://localhost:8787
 export ANTHROPIC_API_KEY=your_freeway_api_key
 ```
 
+如果 Freeway 的网关鉴权未开启，`ANTHROPIC_API_KEY` 可以填任意非空字符串。如需设置网关密钥，在 **Freeway 控制台 → API Keys 页面** 设置你的 `FREEWAY_API_KEY`，然后在这里填入相同的值即可。
+
 在 Windows (PowerShell) 上：
 
 ```powershell
 $env:ANTHROPIC_BASE_URL="http://localhost:8787"
-$env:ANTHROPIC_API_KEY="your_freeway_api_key" or "any non-empty string"
+$env:ANTHROPIC_API_KEY="your_freeway_api_key"
 ```
 
 ---

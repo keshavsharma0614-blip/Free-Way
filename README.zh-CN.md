@@ -200,6 +200,8 @@ Freeway 会在这个 origin 下提供兼容路由。
 
 Freeway 同时暴露 **OpenAI 和 Anthropic 兼容接口**，绝大多数编程 Agent 和 LLM 客户端都可以直接连接。
 
+> 各 Agent 的详细配置指南请参考 [`docs/agents/`](./docs/agents/) 目录。
+
 ### Claude Code
 
 设置 base URL 指向 Freeway：

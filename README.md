@@ -200,6 +200,8 @@ Freeway serves the compatibility routes under that origin.
 
 Freeway exposes **both** OpenAI and Anthropic compatible endpoints, so most coding agents and LLM clients can connect directly.
 
+> Detailed per-agent setup guides are available in [`docs/agents/`](./docs/agents/).
+
 ### Claude Code
 
 Set the base URL to Freeway:

@@ -9,11 +9,13 @@ export ANTHROPIC_BASE_URL=http://localhost:8787
 export ANTHROPIC_API_KEY=your_freeway_api_key
 ```
 
+The `ANTHROPIC_API_KEY` can be any non-empty string if Freeway's gateway auth is disabled. To set a custom gateway key, go to the **Freeway console → API Keys tab** and enter your desired `FREEWAY_API_KEY` — then use that same value here.
+
 On Windows (PowerShell):
 
 ```powershell
 $env:ANTHROPIC_BASE_URL="http://localhost:8787"
-$env:ANTHROPIC_API_KEY="your_freeway_api_key" or "any non-empty string"
+$env:ANTHROPIC_API_KEY="your_freeway_api_key"
 ```
 
 ---
