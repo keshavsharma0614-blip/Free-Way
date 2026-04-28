@@ -10,6 +10,7 @@ dist/
 Thumbs.db
 docs/superpowers
 src/web/backups/
-
-
+*.backup
+tmp/
 .tmp/
+CLAUDE.md

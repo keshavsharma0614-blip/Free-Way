@@ -2364,12 +2364,25 @@ textarea:focus-visible {
    ========================================================= */
 
 .providers-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
 }
 
+@media (max-width: 1200px) {
+  .providers-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .providers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .route-card-header {
-  gap: 0.8rem;
-  padding: 0.9rem 0.95rem 0.72rem;
+  gap: 0.72rem;
+  padding: 0.82rem 0.86rem 0.64rem;
 }
 
 .route-provider-main {
@@ -2394,9 +2407,9 @@ textarea:focus-visible {
 }
 
 .route-lane {
-  margin: 0 0.95rem 0.72rem;
-  padding: 0.72rem;
-  gap: 0.45rem;
+  margin: 0 0.86rem 0.64rem;
+  padding: 0.64rem;
+  gap: 0.4rem;
 }
 
 .route-lane-node span,
@@ -2415,7 +2428,7 @@ textarea:focus-visible {
 }
 
 .route-health-copy {
-  padding: 0 0.95rem 0.72rem;
+  padding: 0 0.86rem 0.64rem;
 }
 
 .route-health-headline {
@@ -2428,12 +2441,12 @@ textarea:focus-visible {
 }
 
 .route-metrics {
-  margin: 0 0.95rem 0.72rem;
-  gap: 0.38rem;
+  margin: 0 0.86rem 0.64rem;
+  gap: 0.34rem;
 }
 
 .route-metric {
-  padding: 0.55rem 0.58rem;
+  padding: 0.5rem 0.52rem;
 }
 
 .route-metric strong {
@@ -2441,8 +2454,8 @@ textarea:focus-visible {
 }
 
 .route-config {
-  margin: 0 0.95rem 0.72rem;
-  padding: 0.62rem;
+  margin: 0 0.86rem 0.64rem;
+  padding: 0.56rem;
 }
 
 .route-config-row {
@@ -2457,7 +2470,7 @@ textarea:focus-visible {
 }
 
 .route-models {
-  padding: 0.75rem 0.95rem 0.88rem;
+  padding: 0.66rem 0.86rem 0.74rem;
 }
 
 .route-model-toggle {
