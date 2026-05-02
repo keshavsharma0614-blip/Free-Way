@@ -1,6 +1,8 @@
 # Aider Integration Guide for Freeway
 
-> Freeway exposes an OpenAI-compatible local endpoint at `http://localhost:8787/v1`, so Aider works using standard OpenAI configuration flags.
+> Freeway exposes an OpenAI-compatible local endpoint at `http://localhost:8787/v1`, so Aider works using standard OpenAI-compatible configuration.
+> Depending on your setup, Aider may use `OPENAI_API_BASE` / `--openai-api-base`, while some other OpenAI-compatible tools may instead reference `OPENAI_BASE_URL`.
+
 
 ## 📋 Quick Start
 
@@ -95,6 +97,8 @@ aider
 
 ## Step 3: Model Selection
 
+> Note: The model IDs below are examples only. Use the model IDs returned by your local Freeway `/v1/models` endpoint or shown in the Freeway console for the most accurate list.
+
 Use any Freeway-supported model ID with the `--model` flag:
 
 ```bash
@@ -111,13 +115,10 @@ Use any Freeway-supported model ID with the `--model` flag:
 ## Step 4: Verification
 
 ```bash
-aider --openai-api-base http://localhost:8787/v1 \
-      --openai-api-key <your_FREEWAY_API_KEY> \
-      --model llama-3.3-70b \
-      --version
+curl http://localhost:8787/v1/models
 ```
 
-**Expected output:** Aider version with no connection errors.
+**Expected output:** A JSON list of available models from your local Freeway instance.
 
 ## Step 5: Test with a Real File
 
